@@ -6,35 +6,52 @@
 <style>
   body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
   h1 { font-size: 24px; }
-  input[type="password"], input[type="text"], button, textarea { width: 100%; margin-top: 10px; padding: 10px; font-size: 16px; box-sizing: border-box; }
+  input[type="password"], button, textarea { width: 100%; margin-top: 10px; padding: 10px; font-size: 16px; box-sizing: border-box; }
   button { background: #10a37f; color: white; border: none; cursor: pointer; border-radius: 6px; }
   button:hover { background: #0e8c6d; }
   textarea { height: 200px; margin-top: 20px; }
   #status { margin-top: 10px; color: gray; }
   .api-key-row { display: flex; gap: 8px; margin-top: 10px; }
   .api-key-row input { margin-top: 0; flex: 1; }
-  .btn-change-key {
+  .btn-save-key {
     width: auto;
     margin-top: 0;
-    padding: 10px 14px;
+    padding: 10px 16px;
     font-size: 14px;
-    background: #555;
     white-space: nowrap;
     flex-shrink: 0;
   }
+  .saved-row {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #10a37f;
+  }
+  .btn-change-key {
+    width: auto;
+    margin-top: 0;
+    padding: 5px 12px;
+    font-size: 12px;
+    background: #555;
+    white-space: nowrap;
+  }
   .btn-change-key:hover { background: #333; }
-  .saved-badge { margin-top: 6px; font-size: 12px; color: #10a37f; }
 </style>
 </head>
 <body>
   <h1>🎙️ 音声文字起こし</h1>
 
   <label>OpenAI APIキー</label>
-  <div class="api-key-row">
+  <div id="apiKeyInputRow" class="api-key-row">
     <input type="password" id="apikey" placeholder="sk-..." />
-    <button class="btn-change-key" onclick="clearApiKey()">🔑 APIキーを変更</button>
+    <button class="btn-save-key" onclick="saveApiKey()">保存</button>
   </div>
-  <div class="saved-badge" id="savedBadge" style="display:none">✓ 保存済み（次回から自動入力されます）</div>
+  <div class="saved-row" id="savedRow">
+    <span>✓ APIキー保存済み（次回から自動入力されます）</span>
+    <button class="btn-change-key" onclick="changeApiKey()">APIキーを変更</button>
+  </div>
 
   <label style="margin-top:15px; display:block;">音声ファイル</label>
   <input type="file" id="audiofile" accept="audio/*" />
@@ -51,29 +68,43 @@
       const saved = localStorage.getItem(LS_KEY);
       if (saved) {
         document.getElementById('apikey').value = saved;
-        document.getElementById('savedBadge').style.display = 'block';
+        showSavedState();
       }
     })();
 
-    function clearApiKey() {
+    function showSavedState() {
+      document.getElementById('apiKeyInputRow').style.display = 'none';
+      document.getElementById('savedRow').style.display = 'flex';
+    }
+
+    function showInputState() {
+      document.getElementById('apiKeyInputRow').style.display = 'flex';
+      document.getElementById('savedRow').style.display = 'none';
+    }
+
+    function saveApiKey() {
+      const apiKey = document.getElementById('apikey').value.trim();
+      if (!apiKey) { alert('APIキーを入力してください'); return; }
+      localStorage.setItem(LS_KEY, apiKey);
+      showSavedState();
+    }
+
+    function changeApiKey() {
       localStorage.removeItem(LS_KEY);
-      const input = document.getElementById('apikey');
-      input.value = '';
-      input.focus();
-      document.getElementById('savedBadge').style.display = 'none';
+      document.getElementById('apikey').value = '';
+      showInputState();
+      document.getElementById('apikey').focus();
     }
 
     async function transcribe() {
-      const apiKey = document.getElementById('apikey').value.trim();
+      const apiKey = document.getElementById('apikey').value.trim()
+        || localStorage.getItem(LS_KEY);
       const fileInput = document.getElementById('audiofile');
       const status = document.getElementById('status');
       const result = document.getElementById('result');
 
       if (!apiKey) { alert('APIキーを入力してください'); return; }
       if (!fileInput.files[0]) { alert('音声ファイルを選んでください'); return; }
-
-      localStorage.setItem(LS_KEY, apiKey);
-      document.getElementById('savedBadge').style.display = 'block';
 
       status.textContent = '処理中...しばらくお待ちください';
       result.value = '';
