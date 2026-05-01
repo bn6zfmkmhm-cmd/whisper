@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>音声文字起こし</title>
+<style>
+  body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+  h1 { font-size: 24px; }
+  input, button, textarea { width: 100%; margin-top: 10px; padding: 10px; font-size: 16px; box-sizing: border-box; }
+  button { background: #10a37f; color: white; border: none; cursor: pointer; border-radius: 6px; }
+  button:hover { background: #0e8c6d; }
+  textarea { height: 200px; margin-top: 20px; }
+  #status { margin-top: 10px; color: gray; }
+</style>
+</head>
+<body>
+  <h1>🎙️ 音声文字起こし</h1>
+
+  <label>OpenAI APIキー</label>
+  <input type="password" id="apikey" placeholder="sk-..." />
+
+  <label style="margin-top:15px; display:block;">音声ファイル</label>
+  <input type="file" id="audiofile" accept="audio/*" />
+
+  <button onclick="transcribe()">文字起こし開始</button>
+
+  <div id="status"></div>
+  <textarea id="result" placeholder="ここに結果が表示されます"></textarea>
+
+  <script>
+    async function transcribe() {
+      const apiKey = document.getElementById('apikey').value.trim();
+      const fileInput = document.getElementById('audiofile');
+      const status = document.getElementById('status');
+      const result = document.getElementById('result');
+
+      if (!apiKey) { alert('APIキーを入力してください'); return; }
+      if (!fileInput.files[0]) { alert('音声ファイルを選んでください'); return; }
+
+      status.textContent = '処理中...しばらくお待ちください';
+      result.value = '';
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'ja');
+
+      try {
+        const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (data.text) {
+          result.value = data.text;
+          status.textContent = '完了！';
+        } else {
+          status.textContent = 'エラー: ' + JSON.stringify(data);
+        }
+      } catch (e) {
+        status.textContent = 'エラー: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>
